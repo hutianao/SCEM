@@ -1,0 +1,281 @@
+---
+title: "Assignment 3"
+author: "Hu Tianao"
+date: "2023-10-11"
+output: html_document # you can change to other output format if you want
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Exploratory data analysis
+
+
+## 1.1 (Q1)   
+```{r}
+library(tidyverse)
+library(Stat2Data)
+data("Hawks")
+head(Hawks)
+HawksTail <- Hawks$Tail
+head(HawksTail)
+MeanTail <- mean(HawksTail, na.rm=TRUE)
+MedianTail <- median(HawksTail, na.rm=TRUE)
+MeanTail
+MedianTail
+```
+
+## 1.2 (Q1)
+```{r}
+Hawks %>% 
+   summarize( 
+Wing_mean = mean(Wing,na.rm=TRUE), 
+Wing_t_mean = mean(Wing,na.rm=TRUE,trim=0.5),
+Wing_med = median(Wing,na.rm=TRUE), 
+Weight_mean = mean(Weight,na.rm=TRUE),
+Weight_t_mean =mean(Weight,trim=0.5,na.rm=TRUE),
+Weight_med=median(Weight,na.rm=TRUE))
+```
+## 1.2 (Q2)
+```{r}
+Hawks %>% 
+  group_by(Species) %>%
+   summarize( 
+Wing_mean = mean(Wing,na.rm=TRUE), 
+Wing_t_mean = mean(Wing,na.rm=TRUE,trim=0.5),
+Wing_med = median(Wing,na.rm=TRUE), 
+Weight_mean = mean(Weight,na.rm=TRUE),
+Weight_t_mean =mean(Weight,trim=0.5,na.rm=TRUE),
+Weight_med=median(Weight,na.rm=TRUE))
+```
+
+## 1.3 (Q1)
+```{r}
+a <- 2
+b <- 3
+MeanLinearTail <- mean(HawksTail * a + b, na.rm=TRUE)
+MeanTail <- mean(HawksTail, na.rm=TRUE)
+#MeanLinearTail <- as.integer(MeanLinearTail)
+#MeanTail <- as.integer(MeanTail)
+print(MeanTail*2+3)
+print(MeanLinearTail)
+```
+## 1.3 (Q2)
+```{r}
+a <- 2
+b <- 3
+VarLinearTail <- var(HawksTail * a + b, na.rm=TRUE)
+VarTail <- var(HawksTail, na.rm=TRUE)
+SdLinearTail <- sd(HawksTail * a + b, na.rm=TRUE)
+SdTail <- sd(HawksTail, na.rm=TRUE)
+VarLinearTail
+VarTail
+SdLinearTail
+SdTail
+VarTail*a*a
+SdTail*a
+```
+## 1.4 (Q1)
+```{r}
+hal<-Hawks$Hallux
+hal<-hal[!is.na(hal)]
+head(hal)
+outlier_val<-100
+num_outliers<-10
+corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
+mean(hal)
+mean(corrupted_hal)
+#which gives the sample means of corrupted samples
+num_outliers_vect <- seq(0,1000)
+means_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+means_vect <- c(means_vect, mean(corrupted_hal))
+}
+num_outliers_vect <- seq(0,1000)
+t_means_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+t_means_vect <- c(t_means_vect, mean(corrupted_hal, trim = 0.1))
+}
+#median
+num_outliers_vect <- seq(0,1000)
+medians_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+medians_vect <- c(medians_vect, median(corrupted_hal))
+}
+```
+## 1.4 (Q2)
+```{r}
+num_outliers_vect <- seq(0,1000)
+t_medians_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+t_medians_vect <- c(t_medians_vect, median(corrupted_hal,trim = 0.1))
+}
+```
+## 1.4 (Q3)
+```{r}
+df_means_medians <- data.frame(num_outliers=num_outliers_vect, mean=means_vect,
+t_mean=t_means_vect, median=medians_vect)
+df_means_medians %>%
+pivot_longer(!num_outliers, names_to = "Estimator", values_to = "Value") %>%
+ggplot(aes(x=num_outliers,color=Estimator, linetype=Estimator,y=Value)) +
+geom_line()+xlab("Number of outliers")
+```
+
+## 1.5 (Q1)
+```{r}
+ggplot(data = Hawks, aes (y=Weight, x=Species)) + geom_boxplot()+
+xlab('Species') + ylab ("Weight")
+```
+## 1.5 (Q2)
+```{r}
+quantiles <- Hawks %>%
+  group_by(Species) %>%
+  summarize(
+    quantile025 = quantile(Weight, 0.25, na.rm = TRUE),
+    quantile050 = quantile(Weight, 0.5, na.rm = TRUE),
+    quantile075 = quantile(Weight, 0.75, na.rm = TRUE)
+  )
+```
+## 1.5 (Q3)
+```{r}
+num_outliers <- function(x) {
+  x <- x[!is.na(x)]
+  q25 <- quantile(x, 0.25)
+  q75 <- quantile(x, 0.75)
+  iqr <- q75 - q25
+  lower_limit <- q25 - 1.5 * iqr
+  upper_limit <- q75 + 1.5 * iqr
+  num_outliers <- sum(x < lower_limit | x > upper_limit)
+  return(num_outliers)
+}
+num_outliers(c(0, 40, 60, 185))
+
+```
+## 1.5 (Q4)
+```{r}
+quantiles <- Hawks %>%
+  group_by(Species) %>%
+  summarize(
+     num_outliers_weight = num_outliers(Weight)
+  )
+quantiles
+```
+## 1.6 (Q1)
+```{r}
+HawksCC <- Hawks %>%
+  summarize(
+    CovWeightWing = cov(Weight,Wing, use='complete.obs'),
+    CorWeightWing = cor(Weight,Wing, use='complete.obs'),
+  )
+HawksCC
+```
+## 1.6 (Q1)
+```{r}
+a <- 2.4
+b<-7.1
+c<- -1
+d<-3
+HawksCCLin <- Hawks %>%
+  summarize(
+    CovWeightWing = cov( 2.4*Weight+7.1,-1*Wing+(-3), use='complete.obs'),
+    CorWeightWing = cor( 2.4*Weight+7.1,-1*Wing+(-3), use='complete.obs'),
+  )
+HawksCCLin
+```
+
+# 2. Random experiments, events and sample spaces, and the set theory
+## 2.1 (Q1)
+### A random experiment is a procedure (real or imagined) which:
+####     1. has a well-defined set of possible outcomes;
+####     2. could (at least in principle) be repeated arbitrarily many times.
+### An event is a set (i.e. a collection) of possible outcomes of an experiment
+### A sample space is the set of all possible outcomes of interest for a random experiment
+
+## 2.1 (Q2)
+### Example: total 10 after 2 throws
+### sample space: S = {(1,1), (1,2), (1,3), (1,4), (1,5), (1,6), (2,1), (2,2), (2,3), (2,4), (2,5), (2,6), (3,1), (3,2), (3,3), (3,4), (3,5), (3,6), (4,1), (4,2), (4,3), (4,4), (4,5), (4,6), (5,1), (5,2), (5,3), (5,4), (5,5), (5,6), (6,1), (6,2), (6,3), (6,4), (6,5), (6,6)}
+### total number: 6*6 = 36
+### empty set: 'total is 20' 
+
+## 2.2 (Q1)
+### 1:{1,2,3,6},{1,2,3,4,5,6}
+### 2:{2},∅
+### 3:{1,3},{1,2,3}
+### 4:no yes
+### 5:yes
+### 6:{1,2,3}{4,5,6}  {1,2}{3,4}{5,6}
+## 2.2 (Q2)
+### 1:A
+### 2:∅
+### 3:First, we know that A is a subset of B, which means that all elements in A belong to B. Consider an arbitrary element x in Bc.Consider any element x in Bc, and we want to show that x also belongs to Ac. By the definition of Bc, Bc contains all the elements that do not belong to B, so x does not belong to B. By the containment relationship between A and B, x is not a subset of Ac.By the inclusion relation between A and B, we know that x also belongs to A because A ⊆ B. Now we have that x belongs to A and x does not belong to B, which implies that x does not belong to the complement of B or A. Therefore, we conclude that x belongs to Ac.
+### 4:First assume that x is an element of (A ∩ B) C.This implies that x is not an element of (A ∩ B).Since an intersection is the set of all elements common to A and B, the previous step implies that x cannot be an element of A and B.This means that x must be an element of at least one of the sets A C or B C .By definition, this means that x is an element of Ac U Bc.We have shown that the required subset contains
+### 5:{x | x ∈/ (A1 ∩ A2 ∩ ... ∩ Ak)
+### 6:(∪Kk=1 Ak)c = {x | x ∈/ (A1 ∪ A2 ∪ ... ∪ AK)}
+
+## 2.2 (Q3) 
+### |E| = 2^K
+
+## 2.2 (Q4) 
+### 1:{x | x ∈ (A1c ∩ A2c ∩ A3c ∩ A4c)
+### 2:S1 ∪ S2 ∪ S3 ∪ S4 = A1 ∪ (A2 \ A1) ∪ (A3 \ (A1 ∪ A2)) ∪ (A4 \ (A1 ∪ A2 ∪ A3))//S1 ∪ S2 ∪ S3 ∪ S4 = A1 ∪ (A2 ∩ A1c) ∪ (A3 ∩ (A1 ∪ A2)c) ∪ (A4 ∩ (A1 ∪ A2 ∪ A3)c)//S1 ∪ S2 ∪ S3 ∪ S4 = A1 ∪ (A2 ∩ A1c) ∪ (A3 ∩ (A1 ∪ A2)c) ∪ (A4 ∩ (A1 ∪ A2 ∪ A3)c) = A1 ∪ (A2 \ A1) ∪ (A3 \ (A1 ∪ A2)) ∪ (A4 \ (A1 ∪ A2 ∪ A3))
+
+## 2.2 (Q5)
+### 1: 1Ac = 1 - 1A
+### 2: B = Ω
+### 3: (A ∪ B) - (A ∪ B) = ∅ // (A ∩ B)c = Ac ∪ Bc
+
+# 3. Visualisation
+
+## 3 (Q1)
+```{r}
+ ggplot(data = Hawks, aes(x = Tail, color = Species)) +
+    geom_density() + theme_bw() +
+    labs(
+        x = "Tail (mm)",
+        y = "Density"
+    )
+```
+## 3 (Q2)
+```{r}
+ ggplot(data = Hawks, aes(x = Tail, y = Species, fill = Species)) +
+    geom_violin() + theme_bw() +
+    labs(
+        x = "Tail (mm)",
+    )
+```
+## 3 (Q3)
+```{r}
+Weight_Tail_scatter <- ggplot(data = Hawks, aes(x = Tail, y = Weight, fill = Species)) + geom_point(size = 0.5) + labs(
+        x = "Tail (mm)",
+        y = "Weight (mm)"
+    ) 
+Weight_Tail_scatter
+Weight_Tail_scatter + geom_point(aes(color = Species,shape = Species))
+```
+
+## 3 (Q4)
+```{r}
+Weight_Tail_scatter_smooth <- Weight_Tail_scatter + geom_point(aes(color = Species,shape = Species)) + facet_wrap(~Species)
+Weight_Tail_scatter_smooth + geom_smooth(method="lm")
+```
+
+## 3 (Q5)
+```{r}
+Weight_Tail_scatter <- Weight_Tail_scatter + geom_point(aes(color = Species))
+Heavest <- Hawks %>% filter(Species == 'RT' & Weight >= 2000) %>% select(Weight,Tail)
+Heavest
+xend <- 196
+yend <- 2030
+x <- 196
+y <- 1800
+x <- as.numeric(x)
+y <- as.numeric(y)
+xend <- as.numeric(xend)
+yend <- as.numeric(yend)
+Weight_Tail_scatter + geom_curve(x = 196, y = 1800, xend = 196, yend = 2030 ,curvature = 0.3, arrow = arrow(type = "closed", length = unit(0.1, "cm"))) + annotate("text", x = 140, y = 1800, label = "Heaviest Hawk",hjust = -0.2, vjust = 0.5, size = 3)
+```
