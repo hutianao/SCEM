@@ -1,0 +1,292 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+# 1
+## Q1
+```{r}
+library(tidyverse)
+library(Stat2Data)
+library(dplyr)
+data("Hawks")
+filter(Hawks, Species == 'RT' & Weight >= 1000)
+hSF <- select(Hawks, Wing, Weight, Tail )
+head(hSF)
+
+head(select(filter(Hawks, Species == 'RT' & Weight >= 1000),Wing, Weight, Tail))
+
+head(hSF <- Hawks %>%
+  filter(Species == 'RT' & Weight >= 1000) %>%
+  select(Wing, Weight, Tail ))
+head(hSF)
+```
+## Q2
+```{r}
+ num_variables <- ncol(hSF)
+ print(num_variables)
+ print(nrow(hSF))
+ print(ncol(hSF))
+```
+ 
+#1.2
+##Q1
+```{r}
+head(hSF %>% arrange(Wing))
+hSF %>% arrange(Wing) %>% head(,5)
+```
+#1.3, 1.4
+##Q1,Q2,Q3
+```{r}
+code <- c("CH","RT","SS")
+full <- c("Cooper's", "Red-tailed", "Sharp-shinned")
+hawkSpeciesNameCodes <- data.frame(species_code = code, species_name_full = full)
+print(hawkSpeciesNameCodes)
+
+#hawkSpeciesNameCodes %>% rename(Species = species_code)
+hawksFullName <- Hawks %>% rename(species_code = Species)
+head(hawksFullName)
+hawksFullName_res <- select(left_join(hawksFullName, hawkSpeciesNameCodes), -species_code)
+head(hawksFullName_res)
+
+head(select(hawksFullName_res, Wing, Weight, Tail ),7)
+
+hawksWithBMI <- hawksFullName_res %>% rename(Species = species_name_full)
+head(hawksFullName_res)
+head(hawksWithBMI %>%
+    mutate( bird_BMI = 1000 * (Weight / (Wing^2))) %>%
+    arrange(desc(bird_BMI)) %>%
+    select(bird_BMI,  Species ))
+```
+# 1.5
+## Q1,Q2,Q3
+```{r}
+ hawksWithBMI %>% 
+  group_by(Species) %>%
+   summarize(num_rows=n(), mn_wing=mean(Wing),nd_wing= median(Wing,, na.rm=TRUE),t_mn_wing=mean(Wing,0.1), b_wt_ratio=max(Wing/Tail,na.rm=TRUE))
+# summarize(across(everything(), ~sum(is.na(.x)))) 判断空值可直接使用
+# 你可以用.x来代表迭代中的所有x。
+Num_NAs <- hawksWithBMI %>% group_by(Species) %>% select(Wing, Weight, Culmen, Hallux, Tail, StandardTail,Tarsus, Crop) %>% summarize(across(everything(), ~sum(is.na(.x))))
+print(Num_NAs)
+
+``` 
+
+## 2
+```{r}
+library(tidyverse)
+
+impute_by_median<-function(x){
+  mu<-median(x,na.rm=1) # first compute the mean of x
+  impute_f<-function(z){ # coordinate-wise imputation
+    if(is.na(z)){
+      return(mu) # if z is na replace with mean
+    }else{
+      return(z) # otherwise leave in place
+    } }
+return(map_dbl(x,impute_f)) # apply the map function to impute across vector
+}
+v<-c(1,2,NA,4)
+impute_by_median(v)
+
+x <- seq(0, 10, by = 0.1)
+y <- 5 * x + 1
+df_xy <- data.frame(x = x, y = y)
+head(df_xy)
+
+df_xy %>%
+mutate(z=map2_dbl(x,y,~.x+.y)) %>%
+head(5)
+
+sometimes_missing <- function(index, value) {
+  if (index %% 5 == 0) {
+    return(NA)
+  } else {
+    return(value)
+  }
+}
+
+sometimes_missing(14,25)
+sometimes_missing(15,25)
+
+df_xy_missing <- df_xy %>%
+  mutate(row_num = row_number()) %>%
+  mutate(y = map2_dbl(row_num, y, sometimes_missing)) %>%
+  select(-row_num)
+
+print(head(df_xy_missing, 10))
+
+#新增的列如果同名是可以直接覆盖的
+df_xy_imputed <- df_xy_missing %>%
+  mutate(y = impute_by_median(y))
+head(df_xy_imputed)
+```
+## 2.2
+```{r}
+#读取excel可以直接用这段！
+#install.packages("readxl")
+library(readxl) # load the readxl library
+folder_path <- "./"
+#folder_path<-"C:/Users/" # set this to the name of the
+# directory containing "HockeyLeague.xlsx"
+file_name<-"HockeyLeague.xlsx" # set the file name
+file_path<-paste(folder_path,file_name,sep="") # create the file_path
+wins_data_frame<-read_excel(file_path,sheet="Wins") # read of a sheet from an xl file
+
+wins_data_frame %>%
+select(1:5) %>%
+head(3)
+
+library(dplyr)
+library(tidyr)
+# Q1
+#拆分必备！
+wins_tidy <- wins_data_frame %>%
+  #cols = -...1 表示除了第一列之外的所有列都要进行变换
+    pivot_longer(cols = -...1, names_to = "Year", values_to = "Wins") %>%
+    separate(Wins, into = c("Wins", "Total"), sep = " of ") %>%
+    mutate(
+        Year = as.integer(Year),
+        Wins = as.integer(Wins),
+        Total = as.integer(Total)
+    )
+
+wins_tidy <- wins_tidy %>% rename(Team = ...1)
+
+
+head(wins_tidy)
+
+# Q2
+losses_data <- read_excel("HockeyLeague.xlsx", sheet = "Losses")
+
+losses_tidy <- losses_data %>%
+    pivot_longer(cols = -...1, names_to = "Year", values_to = "Losses") %>%
+    separate(Losses, into = c("Losses", "Total"), sep = " of ") %>%
+    mutate(
+        Year = as.integer(Year),
+        Losses = as.integer(Losses),
+        Total = as.integer(Total)
+    )
+#...1为team
+losses_tidy <- losses_tidy %>%
+    group_by(Team, Year) %>%
+    mutate(Draws = Total - Losses) %>%
+    ungroup()
+
+losses_tidy <- losses_tidy %>%
+    select(Team, Year, Losses, Total)
+
+
+head(losses_tidy, 5)
+
+#Q3
+# Combine wins_tidy and losses_tidy
+hockey_df <- wins_tidy %>%
+    left_join(losses_tidy, by = c("Team", "Year","Total")) %>%
+    mutate(
+        Wins = ifelse(!is.na(Wins), Wins, 0),
+        Losses = ifelse(!is.na(Losses), Losses, 0),
+        Draws = Total - Wins - Losses,  # Calculate Draws
+        Wins_rt = Wins / Total,
+        Losses_rt = Losses / Total,
+        Draws_rt = Draws / Total
+    ) %>%
+    select(Team, Year, Wins, Total, Losses, Draws, Wins_rt, Losses_rt, Draws_rt)
+
+# Print the top 5 rows
+head(hockey_df, 5)
+
+#Q4
+library(dplyr)
+
+summary_df <- hockey_df %>%
+  group_by(Team) %>%
+  summarise(
+    W_md = median(Wins_rt),
+    W_mn = mean(Wins_rt),
+    L_md = median(Losses_rt),
+    L_mn = mean(Losses_rt),
+    D_md = median(Draws_rt),
+    D_mn = mean(Draws_rt)
+  ) %>%
+  arrange(desc(W_md))
+
+summary_df
+
+```
+# 3
+```{r}
+## Q1
+library(ggplot2)
+# Filter the data
+ducks_data <- wins_tidy %>%
+  filter(Team == "Ducks")
+# Create a histogram plot
+ggplot(ducks_data, aes(x = Wins)) +
+  geom_histogram(binwidth = 3, fill = "grey", color = "black") +
+  labs(
+    title = "Histogram of Wins for Ducks",
+    x = "Wins",
+    y = "Frequency"
+  )
+
+## Q2
+library(ggplot2)
+
+# Filter the data for the team "Ducks"
+ducks_data <- wins_tidy %>%
+    filter(Team == "Ducks")
+
+# Create a density plot with adjust=0.5
+plot1 <- ggplot(ducks_data, aes(x = Wins)) +
+    geom_density(fill = "grey", color = "black", adjust = 0.5) +
+    labs(
+        title = "Density Plot of Wins for Ducks (adjust=0.5)",
+        x = "Wins",
+        y = "Density"
+    )
+
+# Create a density plot with adjust=2
+plot2 <- ggplot(ducks_data, aes(x = Wins)) +
+    geom_density(fill = "grey", color = "black", adjust = 2) +
+    labs(
+        title = "Density Plot of Wins for Ducks (adjust=2)",
+        x = "Wins",
+        y = "Density"
+    )
+
+# Combine the two plots side by side
+library(gridExtra)
+grid.arrange(plot1, plot2, ncol = 2)
+
+## Q3
+library(dplyr)
+library(ggplot2)
+
+# Create the "wins_teams" data frame
+wins_teams <- wins_tidy %>%
+  select(Year, Team, Wins) %>%
+  pivot_wider(names_from = Team, values_from = Wins)
+
+# Create the scatter plot
+ggplot(wins_teams, aes(x = Ducks, y = Eagles)) +
+  geom_point() +
+  labs(
+    title = "Wins of Ducks vs. Wins of Eagles",
+    x = "Wins of Ducks",
+    y = "Wins of Eagles"
+  )
+
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
