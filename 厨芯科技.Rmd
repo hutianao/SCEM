@@ -1,0 +1,34 @@
+---
+title: "厨芯科技"
+author: "Hu Tianao"
+date: "2023-10-12"
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyr)
+
+df <- read_excel("销售入离职时间.xlsx")
+
+summary_by_region <- df %>%
+    group_by(大区) %>%
+    summarise(
+        销售人员数量 = n(),
+        入职人数 = n_distinct(销售ID),
+        离职人数 = sum(!is.na(离职日期))
+    ) 
+
+print(summary_by_region)
+
+north <- 257/502
+south <- 215/383
+total <- 472/885
+north
+south
+total
+
+
+```
