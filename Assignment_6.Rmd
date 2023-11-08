@@ -1,0 +1,37 @@
+---
+title: "Assignment_6"
+author: "Hu Tianao"
+date: "2023-11-08"
+output: html_document
+ # pdf_document:
+  #  latex_engine: xelatex
+ # html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+# 1
+## 1.1 Q1
+## ？
+
+## 1.1 Q2
+### (X=0)=1−α−β=0.5，That is, the probability of taking the value 0 is 0.5.
+### P(X=3)=0.25，That is, the probability of taking the value 3 is 0.25.
+### P(X=10)=0.25，That is, the probability of taking the value 10 is 0.25.
+
+## 1.1 Q3
+```{r}
+library(tidyverse)
+set.seed(0)
+n <- 1000
+sample_X <- data.frame(U=runif(n)) %>%
+mutate(X=case_when( (0<=U)&(U<0.25)~3, (0.25<=U)&(U<0.5)~10, (0.5<=U)&(U<=1)~0)) %>%
+pull(X)
+```
+
+
