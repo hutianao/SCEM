@@ -1,0 +1,40 @@
+---
+title: "厨芯科技_2"
+author: "Hu Tianao"
+date: "2023-10-12"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyr)
+
+df <- read_excel("安装明细数据.xlsx")
+library(dplyr)
+
+# 将日期转换为年月格式
+df <- df %>%
+  mutate(开始合作年月 = format(as.Date(开始合作日期), format = "%Y-%m"))
+
+# 按年月计算每个月的在职员工数
+monthly_employees <- df %>%
+  group_by(开始合作年月) %>%
+  summarise(在职员工数 = n_distinct(销售ID))
+
+print(monthly_employees)
+```
+##library(dplyr)
+
+# 计算每个月的安装数
+##monthly_installations <- df %>%
+##group_by(开始合作年月) %>%
+##summarise(安装数 = sum(安装数))
+
+# 合并每月在职员工数和每月安装数
+##monthly_data <- merge(monthly_employees, monthly_installations, by.x = "开始合作年月", by.y = "开始合作年月", all.x = TRUE)
+
+# 计算比例
+##monthly_data <- monthly_data %>%
+##mutate(安装员工比 =安装数 / 在职员工数)
+##print(monthly_data)

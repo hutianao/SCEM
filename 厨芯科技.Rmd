@@ -32,3 +32,22 @@ total
 
 
 ```
+
+```{r}
+
+# 将日期转换为年月格式
+df <- df %>%
+  mutate(入职年月 = format(as.Date(入职日期), format = "%Y-%m"))
+
+# 按年月计算在职的总人数
+monthly_employment <- df %>%
+  group_by(入职年月) %>%
+  summarise(在职总人数 = n_distinct(销售ID))
+
+print(monthly_employment)
+
+
+
+
+
+```
