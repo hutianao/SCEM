@@ -1,0 +1,177 @@
+---
+title: "R_Coursework_HTS"
+author: "Hu Tianao"
+date: "2023-11-29"
+output: html_document
+---
+## Part 1 A 1
+```{r}
+# Load the necessary libraries
+library(dplyr)
+
+# Load the data into data frames
+df <- read.csv("global_financial_development.csv")
+df_code <- read.csv("GFD_indicators.csv")
+
+# Display a subset of the data frame df consisting of the first 5 rows and the columns country, indicator_code, year_2019
+subset_df <- df %>% select(country, indicator_code, year_2019) %>% head(5)
+print(subset_df)
+
+# Display a subset of the data frame di_code consisting of the first 5 rows and all columns
+subset_df_code <- df_code %>% head(5)
+print(subset_df_code)
+
+```
+## Part 1 A 2
+```{r}
+# Merge the data frames df and di_code into a new data frame df_merged based on the column indicator_code
+df_merged <- merge(df, df_code, by = "indicator_code")
+
+# Remove the indicator_code column from the merged data frame
+df_merged <- df_merged %>% select(-indicator_code)
+
+# Display a subset of df_merged consisting of the first 6 rows and the columns country, indicator_name, year_2019
+subset_df_merged <- df_merged %>% select(country, indicator_name, year_2019) %>% head(6)
+print(subset_df_merged)
+```
+## Part 1 A 3
+```{r}
+# Create a new data frame df_stock containing rows where the indicator_name is StockMarketReturn
+df_stock <- df_merged %>% filter(indicator_name == "StockMarketReturn")
+
+# Reorder rows based on the values in the column year_2019 in descending order
+df_stock <- df_stock %>% arrange(desc(year_2019))
+
+# Display a subset of df_stock consisting of the first 5 rows and the columns country, year_2019, year_2020, year_2021
+subset_df_stock <- df_stock %>% select(country, year_2019, year_2020, year_2021) %>% head(5)
+print(subset_df_stock)
+df_merged %>% head(5)
+```
+## Part 1 A 4
+```{r}
+# 创建一个包含所有国家的独立数据框
+all_countries <- df_merged %>%
+  select(country) %>%
+  distinct()
+
+# 创建一个包含5个indicator的数据框
+all_indicators <- df_merged %>%
+  select(indicator_name) %>%
+  distinct()
+
+# 创建一个空的数据框 df_summary
+df_summary <- data.frame(
+  country = character(0),
+  BankAccountsPer1000Adults = numeric(0),
+  BankBranchesPer100000Adults = numeric(0),
+  Top5BankAsset = numeric(0),
+  CompaniesPer1000000People = numeric(0),
+  StockMarketReturn = numeric(0),
+  stringsAsFactors = FALSE
+)
+
+# 循环遍历每个国家
+for (i in 1:nrow(all_countries)) {
+  country <- all_countries$country[i]
+
+  # 循环遍历每个指标
+  for (j in 1:nrow(all_indicators)) {
+    indicator <- all_indicators$indicator_name[j]
+
+    # 根据国家和指标筛选数据
+    subset_data <- df_merged %>% 
+      filter(country == country, indicator_name == indicator)
+
+    # 提取每一行中非缺失值的数据
+    row_values <- unlist(subset_data[, 6:ncol(subset_data)], use.names = FALSE)
+    non_missing_values <- row_values[!is.na(row_values)]
+
+    # 创建一个新的行数据
+    new_row <- data.frame(
+      country = country,
+      BankAccountsPer1000Adults = NaN,
+      BankBranchesPer100000Adults = NaN,
+      Top5BankAsset = NaN,
+      CompaniesPer1000000People = NaN,
+      StockMarketReturn = NaN,
+      stringsAsFactors = FALSE
+    )
+
+    # 计算均值
+    if (length(non_missing_values) >= 5) {
+      new_row[[paste(indicator)]] <- mean(sort(non_missing_values, decreasing = TRUE)[1:5])
+    } else if (length(non_missing_values) > 0) {
+      new_row[[paste(indicator)]] <- mean(non_missing_values)
+    } else {
+      new_row[[paste(indicator)]] <- NaN
+    }
+
+    # 将新行添加到 df_summary 中
+    df_summary <- bind_rows(df_summary, new_row)
+  }
+}
+
+# 显示 df_summary
+df_summary
+
+```
+## Part 1 A 5
+```{r}
+library(ggplot2)
+library(dplyr)
+
+selected_data <- df_merged[, c("year_2019", "income","indicator_name")] 
+
+filtered_data <- selected_data[!is.na(selected_data$year_2019) & selected_data$year_2019 <= 500 & selected_data$indicator_name == "BankBranchesPer100000Adults" ,]
+print(filtered_data)
+
+grouped_data <- filtered_data %>% group_by(income)  %>% arrange(income)
+grouped_data
+
+histogram <- ggplot(grouped_data, aes(x = year_2019, fill = income)) +
+  geom_histogram(binwidth = 10)
+  labs(x = "Bank Branches Per 100000 Adults", y = "count") +
+  scale_fill_manual(values = c("High income" = "gray", 
+                               "Low income" = "gray", 
+                               "Lower middle income" = "gray",
+                               "Upper middle income" = "gray")) +
+  scale_color_manual(values = c("High income" = "red", 
+                                "Low income" = "green", 
+                                "Lower middle income" = "blue",
+                                "Upper middle income" = "purple")) + theme_minimal()
+print(histogram)
+```
+## Part 1 A 6
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+# Filter data for the specified countries and indicators
+selected_countries <- c("Australia", "Belgium", "Switzerland", "United Kingdom")
+selected_indicators <- "CompaniesPer1000000People"
+
+filtered_data <- df_merged %>%
+  filter(country %in% selected_countries & indicator_name %in% selected_indicators) %>%
+  select(country, indicator_name, starts_with("year"))
+
+# Reshape the data to long format for ggplot
+long_data <- filtered_data %>%
+  pivot_longer(cols = starts_with("year"), names_to = "year", values_to = "value") %>%
+  mutate(year = as.numeric(str_replace(year, "year_", "")))
+
+# Set plot parameters
+options(repr.plot.width = 10, repr.plot.height = 6)
+
+# Create the line plot
+ggplot(long_data, aes(x = year, y = value, color = country)) +
+  geom_line() +
+  labs(title = "Companies Per 1000000 People Over Time",
+       x = "Year",
+       y = "Companies Per 1000000 People",
+       color = "Country") +
+  theme_minimal()
+
+
+```

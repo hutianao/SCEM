@@ -1,0 +1,7 @@
+"indicator_code","indicator_name"
+"ai01","BankAccountsPer1000Adults"
+"ai02","BankBranchesPer100000Adults"
+"ai25","ATMsPer100000Adults"
+"oi06","Top5BankAsset"
+"om01","CompaniesPer1000000People"
+"om02","StockMarketReturn"
